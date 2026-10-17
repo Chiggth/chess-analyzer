@@ -38,7 +38,7 @@ function isBookPly(ply) {
   const played = moves.slice(0, ply).map(m => normalizeSan(m.san));
   return BOOK_LINES.some(line => line.length >= ply && played.every((san, i) => line[i] === san));
 }
-const ANALYSIS_DEPTH = 16; // practical target for phones; time-limited search is faster
+const ANALYSIS_DEPTH = 14; // practical target for phones; time-limited search is faster
 const ANALYSIS_TIME_MS = 700; // per position; raise to 1200-1800 for deeper but slower analysis
 let chess = new Chess(), moves = [], positions = [], analyses = [], currentPly = 0, engine = null, engineReady = false, analyzing = false, queue = [], activeResolve = null, lastSquares = [];
 
@@ -65,7 +65,7 @@ function renderBoard(){
       }
     }
     const piece=grid[r][c];
-    if(piece){const span=document.createElement("span");span.className="piece "+(piece.color==="w"?"white":"black");span.textContent=PIECES[piece.color+piece.type];sq.appendChild(span);}
+    if(piece){const img=document.createElement("img");img.className="piece-img "+(piece.color==="w"?"white":"black");img.src="pieces/"+piece.color+piece.type+".png";img.alt=({k:"Vua",q:"Hậu",r:"Xe",b:"Tượng",n:"Mã",p:"Tốt"})[piece.type]+(piece.color==="w"?" trắng":" đen");sq.appendChild(img);}
     if(c===0||r===7){const coord=document.createElement("span");coord.className="coord";coord.textContent=c===0?rank:file;sq.appendChild(coord);}
     board.appendChild(sq);
   }
@@ -110,7 +110,7 @@ function loadPgn(pgn){
     const parsed=new Chess();parsed.loadPgn(pgn);
     chess=parsed; moves=chess.history({verbose:true}); positions=[new Chess().fen()];
     const replay=new Chess();for(const m of moves){replay.move(m);positions.push(replay.fen());}
-    analyses=[];currentPly=0;lastSquares=[];const headers=chess.getHeaders?.()||{};
+    analyses=[];currentPly=0;lastSquares=[];$("whiteMeta").textContent="Độ chính xác — · Elo ước tính —";$("blackMeta").textContent="Độ chính xác — · Elo ước tính —";$("whiteRating").textContent="—";$("blackRating").textContent="—";const headers=chess.getHeaders?.()||{};
     $("whiteName").textContent=headers.White||"Trắng";$("blackName").textContent=headers.Black||"Đen";
     $("gameResult").textContent=headers.Result&&headers.Result!=="*" ? headers.Result : "PGN";
     renderMoves();goTo(0);setProgress(0,"Đã tải "+moves.length+" nửa nước đi. Sẵn sàng phân tích.");
@@ -172,6 +172,30 @@ function feedbackFor(quality, san, bestSan, cp){
   const names={"Brilliant":"Brilliant (!!)","Great Move":"Great Move (!)","Best Move":"Best Move (★)","Excellent":"Excellent (👍)","Good":"Good (✓)","Book":"Book (▤)","Inaccuracy":"Inaccuracy (?!)","Mistake":"Mistake (?)","Miss":"Miss (×)","Blunder":"Blunder (??)"};
   return `${names[quality]||quality}: ${san||"Vị trí ban đầu"}${bestSan?`. Nước đề xuất của Stockfish: ${bestSan}.`:"."}`;
 }
+function updatePlayerStats(){
+  const losses={w:[],b:[]};
+  for(let ply=1;ply<analyses.length;ply++){
+    const before=analyses[ply-1], after=analyses[ply];
+    if(!before||!after) continue;
+    const whiteMover=(ply%2===1);
+    const loss=Math.max(0, whiteMover ? before.score-after.score : after.score-before.score);
+    losses[whiteMover?"w":"b"].push(Math.min(1000,loss));
+  }
+  for(const side of ["w","b"]){
+    const arr=losses[side];
+    if(!arr.length) continue;
+    const avg=arr.reduce((a,b)=>a+b,0)/arr.length;
+    // A transparent, game-only heuristic; not Chess.com’s official accuracy/Elo formula.
+    const accuracy=Math.max(1,Math.min(99,Math.round(100*Math.exp(-avg/180))));
+    const blunders=arr.filter(v=>v>=200).length;
+    const estimatedElo=Math.max(400,Math.min(2600,Math.round((450+accuracy*18-blunders*35)/50)*50));
+    const meta=$(side==="w"?"whiteMeta":"blackMeta");
+    if(meta) meta.textContent=`Độ chính xác ${accuracy}% · Elo ước tính ~${estimatedElo}`;
+    const rating=$(side==="w"?"whiteRating":"blackRating");
+    if(rating) rating.textContent=`${accuracy}%`;
+  }
+}
+
 async function analyzeGame(){
   if(analyzing)return;
   if(!moves.length){alert("Hãy tải PGN trước.");return;}
@@ -205,6 +229,7 @@ async function analyzeGame(){
       if(ply>0)renderMoves();
     }
     setProgress(100,"Hoàn tất phân tích "+(moves.length+1)+" vị trí.");
+    updatePlayerStats();
     goTo(currentPly);
   }catch(e){setProgress(0,"Có lỗi khi phân tích: "+e.message);console.error(e);}
   finally{analyzing=false;$("analyzeBtn").disabled=false;$("analyzeBtn").textContent="Phân tích lại";}

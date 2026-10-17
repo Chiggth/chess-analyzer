@@ -13,3 +13,6 @@ body{margin:0;background:var(--bg);color:var(--text);font-family:Inter,system-ui
 .move-mark.annotation-good{color:#8fca45}
 .move-mark.annotation-warn{color:#f3bd38}
 .move-mark.annotation-bad{color:#ed5b53}
+
+/* Piece artwork based on the user's reference image */
+.piece-img{width:82%;height:82%;object-fit:contain;z-index:1;position:relative;pointer-events:none}.avatar img{width:80%;height:80%;object-fit:contain}.avatar.white img{filter:none}.avatar.black img{filter:invert(1)}.stats-note{font-size:11px;color:var(--muted);padding:0 18px 18px;max-width:1240px;margin:0 auto}.player-row small{max-width:100%;font-size:10px;line-height:1.3}.player-rating{font-weight:800;color:var(--green2)}
