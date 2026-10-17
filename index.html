@@ -1,0 +1,54 @@
+<!doctype html>
+<html lang="vi">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#302e2b">
+  <title>Chess Analyzer</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <header class="topbar">
+    <div class="brand"><span class="brand-mark">♞</span><span>CHESS<span class="brand-accent"> ANALYZER</span></span></div>
+    <span class="engine-pill"><i id="engineDot"></i><span id="engineStatus">Stockfish chưa tải</span></span>
+  </header>
+
+  <main class="layout">
+    <section class="board-column">
+      <div class="player-row"><div class="avatar black">♚</div><div><strong id="blackName">Đen</strong><small id="blackMeta">Đối thủ</small></div><span class="player-rating" id="blackRating">—</span></div>
+      <div class="board-shell">
+        <div class="eval-track"><div id="evalBlack" class="eval-black"></div><div id="evalWhite" class="eval-white"></div><span id="evalText">0.0</span></div>
+        <div class="board-wrap">
+          <div id="board" class="board" aria-label="Bàn cờ vua"></div>
+        </div>
+      </div>
+      <div class="player-row"><div class="avatar white">♔</div><div><strong id="whiteName">Trắng</strong><small id="whiteMeta">Người chơi</small></div><span class="player-rating" id="whiteRating">—</span></div>
+      <div class="nav-controls">
+        <button id="firstBtn" title="Về đầu">|◀</button><button id="prevBtn" title="Nước trước">◀</button>
+        <span id="moveCounter">Vị trí ban đầu</span>
+        <button id="nextBtn" title="Nước tiếp">▶</button><button id="lastBtn" title="Đến cuối">▶|</button>
+      </div>
+    </section>
+
+    <aside class="panel">
+      <div class="panel-heading"><div><h1>Phân tích ván cờ</h1><p>Stockfish · Phân tích trực tiếp trên trình duyệt</p></div><span class="spark">✦</span></div>
+      <label class="field-label" for="pgnInput">Dán PGN hoặc tải tệp PGN</label>
+      <textarea id="pgnInput" rows="5" placeholder='Dán nội dung PGN ở đây, ví dụ:&#10;1. e4 e5 2. Nf3 Nc6 3. Bb5 a6'></textarea>
+      <div class="button-row"><label class="file-button">Chọn tệp PGN<input id="pgnFile" type="file" accept=".pgn,.txt,text/plain"></label><button id="loadPgnBtn" class="primary">Tải ván cờ</button></div>
+      <label class="field-label" for="gameUrl">Link Chess.com (thử tải tự động)</label>
+      <div class="url-row"><input id="gameUrl" type="url" placeholder="https://www.chess.com/game/..."><button id="urlBtn">Nhập</button></div>
+      <p class="hint">Nếu link không tải được do giới hạn truy cập, hãy xuất PGN từ Chess.com rồi tải tệp lên.</p>
+      <div class="section-divider"></div>
+      <div class="analysis-head"><h2>Nước đi hiện tại</h2><span id="moveBadge" class="move-badge">—</span></div>
+      <div class="eval-card"><div><span class="eyebrow">ĐÁNH GIÁ THẾ CỜ</span><strong id="score">Chưa phân tích</strong></div><div class="eval-icon">◈</div><p id="feedback">Tải ván cờ và nhấn “Phân tích ván cờ” để bắt đầu.</p></div>
+      <div class="best-move"><div><span class="eyebrow">NƯỚC TỐT NHẤT THEO STOCKFISH</span><strong id="bestMove">—</strong></div><button id="analyzeBtn" class="primary analyze">Phân tích ván cờ</button></div>
+      <div class="progress-wrap"><div id="progressBar"></div></div><p id="progressText" class="hint">Engine chưa chạy. Lần đầu tải engine có thể mất một chút thời gian.</p>
+      <div class="section-divider"></div>
+      <div class="analysis-head"><h2>Danh sách nước đi</h2><span id="gameResult" class="result-tag">PGN</span></div>
+      <div id="movesList" class="moves-list"><p class="empty">Tải PGN để xem các nước đi.</p></div>
+      <div class="footer-note">Phân tích là ước lượng của engine. Độ sâu càng lớn thường càng tốn thời gian và pin.</div>
+    </aside>
+  </main>
+  <script type="module" src="app.js"></script>
+</body>
+</html>
