@@ -27,8 +27,9 @@ function renderBoard(){
   else {$("score").textContent="Chưa phân tích";$("feedback").textContent=currentPly?"Chưa có phân tích cho vị trí này. Hãy nhấn Phân tích ván cờ.":"Tải ván cờ và nhấn “Phân tích ván cờ” để bắt đầu.";$("bestMove").textContent="—";$("moveBadge").textContent=currentPly?`Nước ${Math.ceil(currentPly/2)}`:"—";}
   document.querySelectorAll(".move-item").forEach(b=>b.classList.toggle("active",Number(b.dataset.ply)===currentPly));
 }
-function formatScore(cp){if(cp===null||cp===undefined)return "—";if(typeof cp==="string")return cp;if(Math.abs(cp)>9000)return cp>0?"Chiếu hết cho Trắng":"Chiếu hết cho Đen";return `${cp>0?"+":""}${(cp/100).toFixed(1)}`;}
-function updateEvalBar(cp){const v=Math.max(-8,Math.min(8,cp||0));const white=Math.max(5,Math.min(95,50+v/16*50));$("evalWhite").style.height=white+"%";$("evalBlack").style.height=(100-white)+"%";$("evalText").textContent=formatScore(cp);}
+function formatScore(cp){if(cp===null||cp===undefined)return "—";if(typeof cp==="string")return cp;if(Math.abs(cp)>9000)return cp>0?"Mạng Trắng":"Mạng Đen";return `${cp>0?"+":""}${(cp/100).toFixed(1)}`;}
+function updateEvalBar(cp){const v=Math.max(-8,Math.min(8,Number(cp)||0));const white=Math.max(4,Math.min(96,50+v/16*50));$("evalWhite").style.height=white+"%";$("evalBlack").style.height=(100-white)+"%";$("evalText").textContent=formatScore(cp);}
+function moveMark(quality){return ({"Brilliant":"!!","Best":"!","Excellent":"!","Good":"","Book":"","Inaccuracy":"?!","Mistake":"?","Blunder":"??","Tốt":"","Nước chưa tối ưu":"?!","Chưa chính xác":"?!","Sai lầm":"??"})[quality]??"";}
 function renderMoves(){
   const list=$("movesList");list.innerHTML="";
   if(!moves.length){list.innerHTML='<p class="empty">Tải PGN để xem các nước đi.</p>';return;}
@@ -37,8 +38,10 @@ function renderMoves(){
     const num=document.createElement("span");num.className="move-number";num.textContent=(i/2+1)+".";
     pair.appendChild(num);
     for(let j=i;j<Math.min(i+2,moves.length);j++){
-      const b=document.createElement("button");b.className="move-item";b.textContent=moves[j].san;b.dataset.ply=j+1;
-      const an=analyses[j+1];if(an?.quality==="Sai lầm"||an?.quality==="Blunder")b.classList.add("mistake");else if(an?.quality==="Chưa chính xác"||an?.quality==="Inaccuracy")b.classList.add("inaccuracy");
+      const b=document.createElement("button");b.className="move-item";b.dataset.ply=j+1;
+      const an=analyses[j+1];const san=document.createElement("span");san.className="move-san";san.textContent=moves[j].san;b.appendChild(san);
+      const mark=moveMark(an?.quality);if(mark){const badge=document.createElement("span");badge.className="move-mark "+((mark==="??"||mark==="?")?"mark-bad":(mark==="?!")?"mark-warn":"mark-good");badge.textContent=mark;b.appendChild(badge);b.title=an?.quality||"Đang chờ phân tích";}
+      if(an?.quality==="Sai lầm"||an?.quality==="Blunder")b.classList.add("mistake");else if(an?.quality==="Chưa chính xác"||an?.quality==="Inaccuracy"||an?.quality==="Nước chưa tối ưu")b.classList.add("inaccuracy");
       b.addEventListener("click",()=>goTo(Number(b.dataset.ply)));pair.appendChild(b);
     }
     if(pair.children.length===2){const spacer=document.createElement("span");pair.appendChild(spacer);}
@@ -116,7 +119,9 @@ async function analyzeGame(){
     analyses=Array(moves.length+1).fill(null);
     for(let ply=0;ply<=moves.length;ply++){
       const res=await runPosition(positions[ply],10);
-      const score=res.score;
+      // UCI score is relative to the side to move; convert to White's perspective.
+      const sideToMove=positions[ply].split(" ")[1]||"w";
+      const score=sideToMove==="w"?res.score:-res.score;
       let bestSan=res.best;
       try{const temp=new Chess(positions[ply]);const uci=res.best;if(uci&&uci!=="(none)"){const from=uci.slice(0,2),to=uci.slice(2,4),promotion=uci[4];const mv=temp.move({from,to,promotion});bestSan=mv?.san||uci;}}catch{}
       let quality="—", feedback="Vị trí ban đầu. Stockfish đang tìm nước đi tốt nhất.";
