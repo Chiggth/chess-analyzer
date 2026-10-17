@@ -4,51 +4,82 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <meta name="theme-color" content="#302e2b">
-  <title>Chess Analyzer</title>
+  <title>Chess Analyzer — Advanced Review</title>
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
   <header class="topbar">
-    <div class="brand"><span class="brand-mark">♞</span><span>CHESS<span class="brand-accent"> ANALYZER</span></span></div>
-    <span class="engine-pill"><i id="engineDot"></i><span id="engineStatus">Stockfish chưa tải</span></span>
+    <div class="brand"><span class="brand-mark">♞</span><span>CHESS<span class="brand-accent"> ANALYZER</span></span><span class="advanced-tag">ADVANCED</span></div>
+    <span class="engine-pill"><i id="engineDot"></i><span id="engineStatus">Đang tải Stockfish</span></span>
   </header>
 
   <main class="layout">
     <section class="board-column">
-      <div class="player-row"><div class="avatar black"><img src="pieces/bk.png" alt="Quân vua đen"></div><div><strong id="blackName">Đen</strong><small id="blackMeta">Độ chính xác — · Elo ước tính —</small></div><span class="player-rating" id="blackRating">—</span></div>
+      <div class="player-row"><div class="avatar black"><img src="pieces/bk.png" alt="Vua đen"></div><div class="player-copy"><strong id="blackName">Đen</strong><small id="blackMeta">Độ chính xác — · Elo ước tính —</small></div><span class="player-rating" id="blackRating">—</span></div>
       <div class="board-shell">
         <div class="eval-track"><div id="evalBlack" class="eval-black"></div><div id="evalWhite" class="eval-white"></div><span id="evalText">0.0</span></div>
-        <div class="board-wrap">
-          <div id="board" class="board" aria-label="Bàn cờ vua"></div>
-        </div>
+        <div class="board-wrap"><div id="board" class="board" aria-label="Bàn cờ vua"></div></div>
       </div>
-      <div class="player-row"><div class="avatar white"><img src="pieces/wk.png" alt="Quân vua trắng"></div><div><strong id="whiteName">Trắng</strong><small id="whiteMeta">Độ chính xác — · Elo ước tính —</small></div><span class="player-rating" id="whiteRating">—</span></div>
+      <div class="player-row"><div class="avatar white"><img src="pieces/wk.png" alt="Vua trắng"></div><div class="player-copy"><strong id="whiteName">Trắng</strong><small id="whiteMeta">Độ chính xác — · Elo ước tính —</small></div><span class="player-rating" id="whiteRating">—</span></div>
       <div class="nav-controls">
         <button id="firstBtn" title="Về đầu">|◀</button><button id="prevBtn" title="Nước trước">◀</button>
         <span id="moveCounter">Vị trí ban đầu</span>
         <button id="nextBtn" title="Nước tiếp">▶</button><button id="lastBtn" title="Đến cuối">▶|</button>
       </div>
+      <div class="board-legend"><span><i class="legend-dot best"></i>Nước tốt nhất</span><span><i class="legend-dot warning"></i>Sai số</span><span><i class="legend-dot blunder"></i>Sai lầm lớn</span></div>
     </section>
 
     <aside class="panel">
-      <div class="panel-heading"><div><h1>Phân tích ván cờ</h1><p>Stockfish · phân tích nhanh theo thời gian mỗi vị trí</p></div><span class="spark">✦</span></div>
+      <div class="panel-heading"><div><h1>Phân tích nâng cao</h1><p>Stockfish · MultiPV · mất điểm (CPL) · biến ứng viên · đánh giá từng nước</p></div><span class="spark">✦</span></div>
+
+      <section class="advanced-config">
+        <div class="config-title"><h2>Thiết lập engine</h2><span class="result-tag">Tuỳ chỉnh</span></div>
+        <label class="field-label" for="analysisPreset">Chế độ</label>
+        <select id="analysisPreset" class="settings-select">
+          <option value="quick">Nhanh — ưu tiên tốc độ</option>
+          <option value="balanced" selected>Cân bằng — gợi ý cho điện thoại</option>
+          <option value="deep">Sâu — phân tích kỹ hơn</option>
+          <option value="pro">Chuyên sâu — tốn thời gian hơn</option>
+          <option value="custom">Tùy chỉnh</option>
+        </select>
+        <div class="settings-grid">
+          <label><span>Thời gian/vị trí</span><select id="analysisTime" class="settings-select"><option value="300">300 ms</option><option value="600">600 ms</option><option value="900" selected>900 ms</option><option value="1500">1.5 giây</option><option value="2500">2.5 giây</option><option value="4000">4 giây</option></select></label>
+          <label><span>Số biến (MultiPV)</span><select id="analysisMultiPV" class="settings-select"><option value="1">1 biến — nhanh</option><option value="3" selected>3 biến</option><option value="5">5 biến — chậm hơn</option></select></label>
+          <label><span>Bộ nhớ Hash</span><select id="analysisHash" class="settings-select"><option value="16">16 MB</option><option value="32" selected>32 MB</option><option value="64">64 MB</option></select></label>
+        </div>
+        <p class="hint">Thời gian và MultiPV càng cao thì phân tích càng kỹ nhưng lâu hơn. Độ sâu thực tế phụ thuộc thiết bị và thế cờ; không có mức cố định bảo đảm cho mọi vị trí.</p>
+      </section>
+
       <label class="field-label" for="pgnInput">Dán PGN hoặc tải tệp PGN</label>
       <textarea id="pgnInput" rows="5" placeholder='Dán nội dung PGN ở đây, ví dụ:&#10;1. e4 e5 2. Nf3 Nc6 3. Bb5 a6'></textarea>
       <div class="button-row"><label class="file-button">Chọn tệp PGN<input id="pgnFile" type="file" accept=".pgn,.txt,text/plain"></label><button id="loadPgnBtn" class="primary">Tải ván cờ</button></div>
       <label class="field-label" for="gameUrl">Link Chess.com (thử tải tự động)</label>
       <div class="url-row"><input id="gameUrl" type="url" placeholder="https://www.chess.com/game/..."><button id="urlBtn">Nhập</button></div>
-      <p class="hint">Nếu link không tải được do giới hạn truy cập, hãy xuất PGN từ Chess.com rồi tải tệp lên.</p>
+      <p class="hint">Tải PGN từ tệp thường ổn định hơn; trình duyệt có thể chặn truy cập trực tiếp vào Chess.com.</p>
+
       <div class="section-divider"></div>
-      <div class="analysis-head"><h2>Nước đi hiện tại</h2><span id="moveBadge" class="move-badge">—</span></div>
-      <div class="eval-card"><div><span class="eyebrow">ĐÁNH GIÁ THẾ CỜ</span><strong id="score">Chưa phân tích</strong></div><div class="eval-icon">◈</div><p id="feedback">Tải ván cờ và nhấn “Phân tích ván cờ” để bắt đầu.</p></div>
-      <div class="best-move"><div><span class="eyebrow">NƯỚC TỐT NHẤT THEO STOCKFISH</span><strong id="bestMove">—</strong></div><button id="analyzeBtn" class="primary analyze">Phân tích ván cờ</button></div>
-      <div class="progress-wrap"><div id="progressBar"></div></div><p id="progressText" class="hint">Engine chưa chạy. Lần đầu tải engine có thể mất một chút thời gian.</p>
+      <div class="analysis-head"><h2>Đánh giá vị trí</h2><span id="moveBadge" class="move-badge">—</span></div>
+      <div class="eval-card"><div><span class="eyebrow">ĐÁNH GIÁ THEO GÓC NHÌN TRẮNG</span><strong id="score">Chưa phân tích</strong></div><div class="eval-icon">◈</div><p id="feedback">Tải PGN rồi nhấn “Phân tích ván cờ”.</p></div>
+      <div class="insight-grid">
+        <div class="insight"><span>Mất điểm (CPL)</span><strong id="cplValue">—</strong></div>
+        <div class="insight"><span>Độ sâu thực đạt</span><strong id="depthValue">—</strong></div>
+        <div class="insight wide"><span>Khai cuộc nhận diện</span><strong id="openingValue">—</strong></div>
+      </div>
+      <div class="best-move"><div><span class="eyebrow">NƯỚC TỐT NHẤT TỪ VỊ TRÍ NÀY</span><strong id="bestMove">—</strong></div><div class="engine-actions"><button id="analyzeBtn" class="primary analyze">Phân tích nâng cao</button><button id="stopBtn" class="secondary" disabled>Dừng</button></div></div>
+      <div class="progress-wrap"><div id="progressBar"></div></div><p id="progressText" class="hint">Stockfish đang khởi tạo…</p>
+
+      <section class="candidate-section">
+        <div class="analysis-head"><h2>Biến ứng viên hàng đầu</h2><span id="candidateBadge" class="result-tag">MultiPV 3</span></div>
+        <div id="candidateList" class="candidate-list"><p class="empty">Sau khi phân tích, các biến tốt nhất sẽ xuất hiện ở đây.</p></div>
+      </section>
+
       <div class="section-divider"></div>
       <div class="analysis-head"><h2>Danh sách nước đi</h2><span id="gameResult" class="result-tag">PGN</span></div>
+      <div class="quality-legend"><span class="q-brilliant">‼ Brilliant</span><span class="q-best">★ Best</span><span class="q-book">▤ Book</span><span class="q-warn">?! Inaccuracy</span><span class="q-blunder">?? Blunder</span></div>
       <div id="movesList" class="moves-list"><p class="empty">Tải PGN để xem các nước đi.</p></div>
-      <div class="footer-note">Phân tích là ước lượng của engine. Mặc định phân tích 700 ms mỗi vị trí để chạy nhanh hơn trên điện thoại. Ký hiệu màu lấy cảm hứng từ Chess.com và là phân loại gần đúng, không phải thuật toán chính thức của Chess.com. Có thể tăng ANALYSIS_TIME_MS trong app.js để phân tích kỹ hơn nhưng chậm hơn.</div>
+      <div class="footer-note">Phân loại nước đi, độ chính xác và Elo là ước tính do website tự tính; không dùng thuật toán nội bộ hay cơ sở dữ liệu đầy đủ của Chess.com. MultiPV hiển thị các biến ứng viên Stockfish tìm được, không bảo đảm tuyệt đối biến tốt nhất về mặt lý thuyết.</div>
     </aside>
-  <div class="stats-note">Độ chính xác và Elo là ước tính dựa trên sai số đánh giá của ván này, không phải xếp hạng Elo chính thức.</div>
+    <div class="stats-note">Mẹo: phân tích ván dài với 5 biến và 2.5–4 giây mỗi vị trí có thể mất nhiều phút. Có thể bấm Dừng; kết quả đã hoàn tất trước đó vẫn được giữ.</div>
   </main>
   <script type="module" src="app.js"></script>
 </body>
