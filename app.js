@@ -2,6 +2,7 @@ import { Chess } from "https://cdn.jsdelivr.net/npm/chess.js@1.4.0/+esm";
 
 const $ = id => document.getElementById(id);
 const PIECES = {wk:"♔",wq:"♕",wr:"♖",wb:"♗",wn:"♘",wp:"♙",bk:"♚",bq:"♛",br:"♜",bb:"♝",bn:"♞",bp:"♟"};
+const ANALYSIS_DEPTH = 18; // deeper analysis; slower on phones
 let chess = new Chess(), moves = [], positions = [], analyses = [], currentPly = 0, engine = null, engineReady = false, analyzing = false, queue = [], activeResolve = null, lastSquares = [];
 
 function setStatus(text, ready=false){ $("engineStatus").textContent=text; $("engineDot").parentElement.classList.toggle("ready",ready); }
@@ -14,6 +15,18 @@ function renderBoard(){
     if(lastSquares.includes(name)) sq.classList.add("last");
     if(analyses[currentPly-1]?.bestFrom===name) sq.classList.add("best-from");
     if(analyses[currentPly-1]?.bestTo===name) sq.classList.add("best-to");
+    const currentMoveAnalysis = currentPly > 0 ? analyses[currentPly] : null;
+    if(currentPly > 0 && moves[currentPly-1]?.to===name && currentMoveAnalysis?.quality){
+      const mark = moveMark(currentMoveAnalysis.quality);
+      if(mark){
+        const annotation=document.createElement("span");
+        annotation.className="board-annotation "+annotationClass(currentMoveAnalysis.quality);
+        annotation.textContent=mark;
+        annotation.setAttribute("aria-label",currentMoveAnalysis.quality);
+        annotation.title=currentMoveAnalysis.quality;
+        sq.appendChild(annotation);
+      }
+    }
     const piece=grid[r][c];
     if(piece){const span=document.createElement("span");span.className="piece "+(piece.color==="w"?"white":"black");span.textContent=PIECES[piece.color+piece.type];sq.appendChild(span);}
     if(c===0||r===7){const coord=document.createElement("span");coord.className="coord";coord.textContent=c===0?rank:file;sq.appendChild(coord);}
@@ -29,7 +42,14 @@ function renderBoard(){
 }
 function formatScore(cp){if(cp===null||cp===undefined)return "—";if(typeof cp==="string")return cp;if(Math.abs(cp)>9000)return cp>0?"Mạng Trắng":"Mạng Đen";return `${cp>0?"+":""}${(cp/100).toFixed(1)}`;}
 function updateEvalBar(cp){const v=Math.max(-8,Math.min(8,Number(cp)||0));const white=Math.max(4,Math.min(96,50+v/16*50));$("evalWhite").style.height=white+"%";$("evalBlack").style.height=(100-white)+"%";$("evalText").textContent=formatScore(cp);}
-function moveMark(quality){return ({"Brilliant":"!!","Best":"!","Excellent":"!","Good":"","Book":"","Inaccuracy":"?!","Mistake":"?","Blunder":"??","Tốt":"","Nước chưa tối ưu":"?!","Chưa chính xác":"?!","Sai lầm":"??"})[quality]??"";}
+function moveMark(quality){
+  return ({"Brilliant":"!!","Great":"!","Best":"✓","Excellent":"✓","Good":"✓","Book":"📖","Inaccuracy":"?!","Mistake":"?","Blunder":"??","Missed win":"×","Tốt":"✓","Nước chưa tối ưu":"?!","Chưa chính xác":"?!","Sai lầm":"??"})[quality]??"";
+}
+function annotationClass(quality){
+  if(["Brilliant","Great","Best","Excellent","Good","Book","Tốt"].includes(quality))return "annotation-good";
+  if(["Inaccuracy","Nước chưa tối ưu","Chưa chính xác"].includes(quality))return "annotation-warn";
+  return "annotation-bad";
+}
 function renderMoves(){
   const list=$("movesList");list.innerHTML="";
   if(!moves.length){list.innerHTML='<p class="empty">Tải PGN để xem các nước đi.</p>';return;}
@@ -40,7 +60,7 @@ function renderMoves(){
     for(let j=i;j<Math.min(i+2,moves.length);j++){
       const b=document.createElement("button");b.className="move-item";b.dataset.ply=j+1;
       const an=analyses[j+1];const san=document.createElement("span");san.className="move-san";san.textContent=moves[j].san;b.appendChild(san);
-      const mark=moveMark(an?.quality);if(mark){const badge=document.createElement("span");badge.className="move-mark "+((mark==="??"||mark==="?")?"mark-bad":(mark==="?!")?"mark-warn":"mark-good");badge.textContent=mark;b.appendChild(badge);b.title=an?.quality||"Đang chờ phân tích";}
+      const mark=moveMark(an?.quality);if(mark){const badge=document.createElement("span");badge.className="move-mark "+annotationClass(an.quality);badge.textContent=mark;b.appendChild(badge);b.title=an?.quality||"Đang chờ phân tích";}
       if(an?.quality==="Sai lầm"||an?.quality==="Blunder")b.classList.add("mistake");else if(an?.quality==="Chưa chính xác"||an?.quality==="Inaccuracy"||an?.quality==="Nước chưa tối ưu")b.classList.add("inaccuracy");
       b.addEventListener("click",()=>goTo(Number(b.dataset.ply)));pair.appendChild(b);
     }
@@ -96,17 +116,23 @@ function runPosition(fen,depth=10){
   });
 }
 function classify(delta){
-  if(delta<=-250)return "Sai lầm";
-  if(delta<=-100)return "Chưa chính xác";
-  if(delta<=-50)return "Nước chưa tối ưu";
-  return "Tốt";
+  // delta is the evaluation loss, in centipawns, from the player's own perspective.
+  const loss=Math.max(0, -delta);
+  if(loss<=15)return "Best";
+  if(loss<=35)return "Excellent";
+  if(loss<=70)return "Good";
+  if(loss<=130)return "Inaccuracy";
+  if(loss<=250)return "Mistake";
+  return "Blunder";
 }
 function feedbackFor(quality, san, bestSan, cp){
   if(!san)return "Vị trí ban đầu. Stockfish đang tìm nước đi tốt nhất.";
-  if(quality==="Sai lầm")return `Sai lầm: ${san} làm thế cờ xấu đi đáng kể. Hãy so sánh với ${bestSan||"nước tốt nhất"} mà Stockfish đề xuất.`;
-  if(quality==="Chưa chính xác")return `Chưa chính xác: ${san} khiến bạn mất một phần lợi thế. Có thể cân nhắc ${bestSan||"nước tốt nhất"}.`;
-  if(quality==="Nước chưa tối ưu")return `Nước đi chơi được, nhưng ${bestSan||"một lựa chọn khác"} có thể giữ thế cờ tốt hơn.`;
-  return `Nước ${san} không làm thay đổi lớn đánh giá ở độ sâu hiện tại. Tiếp tục kiểm tra các phương án chiến thuật.`;
+  if(quality==="Blunder")return `Blunder (??): ${san} làm đánh giá xấu đi rõ rệt. Nên xem lại phương án ${bestSan||"tốt nhất"}.`;
+  if(quality==="Mistake")return `Mistake (?): ${san} mất đáng kể lợi thế so với ${bestSan||"nước tốt nhất"}.`;
+  if(quality==="Inaccuracy")return `Inaccuracy (?!): ${san} chưa phải lựa chọn tốt nhất; cân nhắc ${bestSan||"nước tốt nhất"}.`;
+  if(quality==="Good")return `Good move: ${san} vẫn giữ thế cờ tương đối tốt.`;
+  if(quality==="Excellent")return `Excellent move: ${san} gần với lựa chọn tối ưu của Stockfish.`;
+  return `Best move: ${san} gần như trùng với lựa chọn tốt nhất của Stockfish ở độ sâu phân tích này.`;
 }
 async function analyzeGame(){
   if(analyzing)return;
@@ -118,7 +144,7 @@ async function analyzeGame(){
     // loss is measured from the side that made that move.
     analyses=Array(moves.length+1).fill(null);
     for(let ply=0;ply<=moves.length;ply++){
-      const res=await runPosition(positions[ply],10);
+      const res=await runPosition(positions[ply],ANALYSIS_DEPTH);
       // UCI score is relative to the side to move; convert to White's perspective.
       const sideToMove=positions[ply].split(" ")[1]||"w";
       const score=sideToMove==="w"?res.score:-res.score;
@@ -134,7 +160,7 @@ async function analyzeGame(){
       }
       analyses[ply]={score,bestMove:res.best,bestSan,depth:res.depth,quality,feedback};
       const pct=(ply+1)/(moves.length+1)*100;
-      setProgress(pct,`Đang phân tích vị trí ${ply+1}/${moves.length+1} · độ sâu ${res.depth||10}`);
+      setProgress(pct,`Đang phân tích vị trí ${ply+1}/${moves.length+1} · mục tiêu độ sâu ${ANALYSIS_DEPTH} · hiện tại ${res.depth||0}`);
       if(ply===currentPly)renderBoard();
       if(ply>0)renderMoves();
     }
