@@ -38,7 +38,7 @@ function isBookPly(ply) {
   const played = moves.slice(0, ply).map(m => normalizeSan(m.san));
   return BOOK_LINES.some(line => line.length >= ply && played.every((san, i) => line[i] === san));
 }
-const ANALYSIS_DEPTH = 14; // practical target for phones; time-limited search is faster
+const ANALYSIS_DEPTH = 16; // practical target for phones; time-limited search is faster
 const ANALYSIS_TIME_MS = 700; // per position; raise to 1200-1800 for deeper but slower analysis
 let chess = new Chess(), moves = [], positions = [], analyses = [], currentPly = 0, engine = null, engineReady = false, analyzing = false, queue = [], activeResolve = null, lastSquares = [];
 
