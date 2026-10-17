@@ -2,7 +2,44 @@ import { Chess } from "https://cdn.jsdelivr.net/npm/chess.js@1.4.0/+esm";
 
 const $ = id => document.getElementById(id);
 const PIECES = {wk:"♔",wq:"♕",wr:"♖",wb:"♗",wn:"♘",wp:"♙",bk:"♚",bq:"♛",br:"♜",bb:"♝",bn:"♞",bp:"♟"};
-const ANALYSIS_DEPTH = 18; // deeper analysis; slower on phones
+
+// Small built-in opening repertoire. A move is labelled Book only when the
+// complete played SAN sequence is a prefix of a recognized opening line.
+const BOOK_LINES = [
+  "e4 e5 Nf3 Nc6 Bb5 a6 Ba4 Nf6 O-O Be7 Re1 b5 Bb3 d6 c3 O-O h3",
+  "e4 e5 Nf3 Nc6 Bb5 Nf6 O-O Nxe4 d4 Nd6 Bxc6 dxc6 dxe5 Nf5 Qxd8+ Kxd8",
+  "e4 e5 Nf3 Nc6 Bc4 Bc5 c3 Nf6 d4 exd4 cxd4 Bb4+ Nc3 Nxe4 O-O",
+  "e4 e5 Nf3 Nc6 d4 exd4 Nxd4",
+  "e4 c5 Nf3 d6 d4 cxd4 Nxd4 Nf6 Nc3 a6",
+  "e4 c5 Nf3 Nc6 d4 cxd4 Nxd4 Nf6 Nc3 e5",
+  "e4 c5 Nf3 e6 d4 cxd4 Nxd4 a6",
+  "e4 c5 Nc3 Nc6 f4 g6 Nf3 Bg7 Bb5",
+  "e4 e6 d4 d5 Nc3 Nf6 e5 Nfd7 f4 c5 Nf3 Nc6",
+  "e4 e6 d4 d5 Nd2 Nf6 e5 Nfd7 Bd3 c5 c3 Nc6",
+  "e4 c6 d4 d5 Nc3 dxe4 Nxe4 Bf5 Ng3 Bg6",
+  "e4 c6 d4 d5 e5 Bf5 Nf3 e6 Be2",
+  "d4 d5 c4 e6 Nc3 Nf6 Bg5 Be7 e3 O-O Nf3",
+  "d4 d5 c4 e6 Nf3 Nf6 Nc3 Be7",
+  "d4 Nf6 c4 g6 Nc3 Bg7 e4 d6 Nf3 O-O Be2",
+  "d4 Nf6 c4 e6 Nc3 Bb4 e3 O-O Bd3 d5",
+  "d4 Nf6 c4 e6 Nf3 b6 g3 Bb7 Bg2 Be7 O-O O-O",
+  "Nf3 d5 g3 Nf6 Bg2 e6 O-O Be7 d3 O-O",
+  "e4 e5 Bc4 Nf6 d3 Nc6 Nf3 Be7 O-O O-O",
+  "e4 e5 f4 exf4 Nf3 g5 Bc4 g4 O-O gxf3 Qxf3 Qf6",
+  "e4 d5 exd5 Qxd5 Nc3 Qa5 d4 Nf6 Nf3 c6",
+  "d4 d5 Nf3 Nf6 c4 e6 g3 Be7 Bg2 O-O O-O",
+  "e4 e5 Nf3 Nc6 Bb5 a6 Ba4 Nf6 O-O Be7 Re1 b5 Bb3 O-O c3 d5",
+  "e4 e5 Nf3 Nc6 Bb5 a6 Bxc6 dxc6 O-O f6",
+  "e4 e5 Nf3 Nc6 Bb5 a6 Ba4 Nf6 O-O Nxe4"
+].map(line => line.split(/\s+/).map(normalizeSan));
+function normalizeSan(san) { return String(san || "").replace(/[+#?!]+$/g, ""); }
+function isBookPly(ply) {
+  if (ply < 1 || ply > 30) return false;
+  const played = moves.slice(0, ply).map(m => normalizeSan(m.san));
+  return BOOK_LINES.some(line => line.length >= ply && played.every((san, i) => line[i] === san));
+}
+const ANALYSIS_DEPTH = 14; // practical target for phones; time-limited search is faster
+const ANALYSIS_TIME_MS = 700; // per position; raise to 1200-1800 for deeper but slower analysis
 let chess = new Chess(), moves = [], positions = [], analyses = [], currentPly = 0, engine = null, engineReady = false, analyzing = false, queue = [], activeResolve = null, lastSquares = [];
 
 function setStatus(text, ready=false){ $("engineStatus").textContent=text; $("engineDot").parentElement.classList.toggle("ready",ready); }
@@ -43,11 +80,11 @@ function renderBoard(){
 function formatScore(cp){if(cp===null||cp===undefined)return "—";if(typeof cp==="string")return cp;if(Math.abs(cp)>9000)return cp>0?"Mạng Trắng":"Mạng Đen";return `${cp>0?"+":""}${(cp/100).toFixed(1)}`;}
 function updateEvalBar(cp){const v=Math.max(-8,Math.min(8,Number(cp)||0));const white=Math.max(4,Math.min(96,50+v/16*50));$("evalWhite").style.height=white+"%";$("evalBlack").style.height=(100-white)+"%";$("evalText").textContent=formatScore(cp);}
 function moveMark(quality){
-  return ({"Brilliant":"!!","Great":"!","Best":"✓","Excellent":"✓","Good":"✓","Book":"📖","Inaccuracy":"?!","Mistake":"?","Blunder":"??","Missed win":"×","Tốt":"✓","Nước chưa tối ưu":"?!","Chưa chính xác":"?!","Sai lầm":"??"})[quality]??"";
+  return ({"Brilliant":"‼","Great Move":"!","Best Move":"★","Excellent":"👍","Good":"✓","Book":"▤","Inaccuracy":"?!","Mistake":"?","Miss":"×","Blunder":"??","Best":"★","Great":"!"})[quality]??"";
 }
 function annotationClass(quality){
-  if(["Brilliant","Great","Best","Excellent","Good","Book","Tốt"].includes(quality))return "annotation-good";
-  if(["Inaccuracy","Nước chưa tối ưu","Chưa chính xác"].includes(quality))return "annotation-warn";
+  if(["Brilliant","Great Move","Best Move","Excellent","Good","Book","Best","Great"].includes(quality))return "annotation-good";
+  if(quality==="Inaccuracy")return "annotation-warn";
   return "annotation-bad";
 }
 function renderMoves(){
@@ -112,27 +149,28 @@ function waitReady(){return new Promise(resolve=>{activeResolve=resolve;if(engin
 function runPosition(fen,depth=10){
   return new Promise(resolve=>{
     window.currentEngineResult={score:0,depth:0};activeResolve=resolve;
-    engine.postMessage("position fen "+fen);engine.postMessage("go depth "+depth);
+    engine.postMessage("position fen "+fen);engine.postMessage("go movetime "+ANALYSIS_TIME_MS);
   });
 }
-function classify(delta){
-  // delta is the evaluation loss, in centipawns, from the player's own perspective.
-  const loss=Math.max(0, -delta);
-  if(loss<=15)return "Best";
-  if(loss<=35)return "Excellent";
-  if(loss<=70)return "Good";
-  if(loss<=130)return "Inaccuracy";
-  if(loss<=250)return "Mistake";
+function sameUci(move, uci){
+  if(!move || !uci || uci==="(none)") return false;
+  return move.from+move.to+(move.promotion||"")===uci.toLowerCase();
+}
+function classifyMove(loss, isBest, ply, beforeScore, afterScore){
+  // Heuristic labels inspired by Chess.com; exact labels require Chess.com's private classifier/opening database.
+  if(isBest && loss<=8 && ply>12) return "Best Move";
+  if(isBest && loss<=18) return "Best Move";
+  if(isBest && loss<=35) return "Great Move";
+  if(loss<=15) return "Excellent";
+  if(loss<=45) return "Good";
+  if(beforeScore>=300 && afterScore<beforeScore-150) return "Miss";
+  if(loss<=100) return "Inaccuracy";
+  if(loss<=200) return "Mistake";
   return "Blunder";
 }
 function feedbackFor(quality, san, bestSan, cp){
-  if(!san)return "Vị trí ban đầu. Stockfish đang tìm nước đi tốt nhất.";
-  if(quality==="Blunder")return `Blunder (??): ${san} làm đánh giá xấu đi rõ rệt. Nên xem lại phương án ${bestSan||"tốt nhất"}.`;
-  if(quality==="Mistake")return `Mistake (?): ${san} mất đáng kể lợi thế so với ${bestSan||"nước tốt nhất"}.`;
-  if(quality==="Inaccuracy")return `Inaccuracy (?!): ${san} chưa phải lựa chọn tốt nhất; cân nhắc ${bestSan||"nước tốt nhất"}.`;
-  if(quality==="Good")return `Good move: ${san} vẫn giữ thế cờ tương đối tốt.`;
-  if(quality==="Excellent")return `Excellent move: ${san} gần với lựa chọn tối ưu của Stockfish.`;
-  return `Best move: ${san} gần như trùng với lựa chọn tốt nhất của Stockfish ở độ sâu phân tích này.`;
+  const names={"Brilliant":"Brilliant (!!)","Great Move":"Great Move (!)","Best Move":"Best Move (★)","Excellent":"Excellent (👍)","Good":"Good (✓)","Book":"Book (▤)","Inaccuracy":"Inaccuracy (?!)","Mistake":"Mistake (?)","Miss":"Miss (×)","Blunder":"Blunder (??)"};
+  return `${names[quality]||quality}: ${san||"Vị trí ban đầu"}${bestSan?`. Nước đề xuất của Stockfish: ${bestSan}.`:"."}`;
 }
 async function analyzeGame(){
   if(analyzing)return;
@@ -154,13 +192,15 @@ async function analyzeGame(){
       if(ply>0){
         const moverWhite=(ply%2===1);
         const prev=analyses[ply-1]?.score??score;
-        const delta=moverWhite?(score-prev):(prev-score);
-        quality=classify(delta);
+        const loss=Math.max(0, moverWhite ? prev-score : score-prev);
+        const beforeBest=analyses[ply-1]?.bestMove;
+        const isBest=sameUci(moves[ply-1],beforeBest);
+        quality=isBookPly(ply) ? "Book" : classifyMove(loss,isBest,ply,prev,score);
         feedback=feedbackFor(quality,moves[ply-1].san,bestSan,score);
       }
       analyses[ply]={score,bestMove:res.best,bestSan,depth:res.depth,quality,feedback};
       const pct=(ply+1)/(moves.length+1)*100;
-      setProgress(pct,`Đang phân tích vị trí ${ply+1}/${moves.length+1} · mục tiêu độ sâu ${ANALYSIS_DEPTH} · hiện tại ${res.depth||0}`);
+      setProgress(pct,`Đang phân tích vị trí ${ply+1}/${moves.length+1} · mục tiêu nhanh ${ANALYSIS_TIME_MS} ms/vị trí · độ sâu đạt ${res.depth||0}`);
       if(ply===currentPly)renderBoard();
       if(ply>0)renderMoves();
     }

@@ -31,7 +31,7 @@
     </section>
 
     <aside class="panel">
-      <div class="panel-heading"><div><h1>Phân tích ván cờ</h1><p>Stockfish · Phân tích trực tiếp trên trình duyệt</p></div><span class="spark">✦</span></div>
+      <div class="panel-heading"><div><h1>Phân tích ván cờ</h1><p>Stockfish · phân tích nhanh theo thời gian mỗi vị trí</p></div><span class="spark">✦</span></div>
       <label class="field-label" for="pgnInput">Dán PGN hoặc tải tệp PGN</label>
       <textarea id="pgnInput" rows="5" placeholder='Dán nội dung PGN ở đây, ví dụ:&#10;1. e4 e5 2. Nf3 Nc6 3. Bb5 a6'></textarea>
       <div class="button-row"><label class="file-button">Chọn tệp PGN<input id="pgnFile" type="file" accept=".pgn,.txt,text/plain"></label><button id="loadPgnBtn" class="primary">Tải ván cờ</button></div>
@@ -46,7 +46,7 @@
       <div class="section-divider"></div>
       <div class="analysis-head"><h2>Danh sách nước đi</h2><span id="gameResult" class="result-tag">PGN</span></div>
       <div id="movesList" class="moves-list"><p class="empty">Tải PGN để xem các nước đi.</p></div>
-      <div class="footer-note">Phân tích là ước lượng của engine. Độ sâu càng lớn thường càng tốn thời gian và pin.</div>
+      <div class="footer-note">Phân tích là ước lượng của engine. Mặc định phân tích 700 ms mỗi vị trí để chạy nhanh hơn trên điện thoại. Ký hiệu màu lấy cảm hứng từ Chess.com và là phân loại gần đúng, không phải thuật toán chính thức của Chess.com. Có thể tăng ANALYSIS_TIME_MS trong app.js để phân tích kỹ hơn nhưng chậm hơn.</div>
     </aside>
   </main>
   <script type="module" src="app.js"></script>

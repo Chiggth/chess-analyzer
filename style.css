@@ -4,3 +4,12 @@ body{margin:0;background:var(--bg);color:var(--text);font-family:Inter,system-ui
 
 /* Chess.com-style move annotations, also shown on the destination square of the selected move. */
 .board-annotation{position:absolute;z-index:5;right:2px;top:2px;min-width:17px;height:17px;padding:0 2px;border-radius:4px;display:flex;align-items:center;justify-content:center;font:900 12px/1 system-ui,sans-serif;text-shadow:0 1px 2px #0008;box-shadow:0 1px 3px #0008;pointer-events:none}.board-annotation.annotation-good{color:#fff;background:#4b8f37}.board-annotation.annotation-warn{color:#201b10;background:#f0c94d}.board-annotation.annotation-bad{color:#fff;background:#d84b43}.move-mark.annotation-good{color:#8fca68}.move-mark.annotation-warn{color:#e6c45c}.move-mark.annotation-bad{color:#f07870}
+
+/* Chess.com-inspired quality badges */
+.board-annotation{min-width:19px;height:19px;padding:0 3px;border-radius:50%;font-size:12px;font-weight:950;line-height:1;right:2px;top:2px}
+.board-annotation.annotation-good{color:#fff;background:#86bd37}
+.board-annotation.annotation-warn{color:#fff;background:#f3b82f}
+.board-annotation.annotation-bad{color:#fff;background:#e34b45}
+.move-mark.annotation-good{color:#8fca45}
+.move-mark.annotation-warn{color:#f3bd38}
+.move-mark.annotation-bad{color:#ed5b53}
